@@ -8,3 +8,4 @@ yolov5/
 
 *.model
 yolo-to-coco-json-3/
+.env
