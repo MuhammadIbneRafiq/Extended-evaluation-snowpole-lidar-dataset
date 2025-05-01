@@ -3,3 +3,8 @@ SnowPole_Detection_Dataset/
 abc/
 venv/
 yolov5/
+*.zip
+*.voc
+
+*.model
+yolo-to-coco-json-3/
