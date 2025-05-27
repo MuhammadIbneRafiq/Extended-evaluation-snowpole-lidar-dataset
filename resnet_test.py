@@ -3,13 +3,10 @@ import glob
 import xml.etree.ElementTree as ET
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from collections import defaultdict
 import tensorflow_hub as hub
 from tqdm import tqdm
 import time
-
-# Check for GPU availability
+#pip install tensorflow-hub tensorflow matplotlib tqdm
 print("=== GPU/DEVICE SETUP ===")
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
