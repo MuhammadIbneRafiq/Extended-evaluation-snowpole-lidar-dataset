@@ -6,6 +6,8 @@ yolov5/
 *.zip
 *.voc
 
+Permutation1/
+
 *.model
 yolo-to-coco-json-3/
 .env
