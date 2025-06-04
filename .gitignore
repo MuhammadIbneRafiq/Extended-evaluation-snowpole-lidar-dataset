@@ -1,0 +1,26 @@
+datasets/
+SnowPole_Detection_Dataset/
+abc/
+venv/
+yolov5/
+*.zip
+*.voc
+detectron2-1.zip/
+Permutation*/
+
+# Allow specific model weight folders
+!runs/runs/train/
+!runs-yolo-v7/runs/train/
+# But ignore other runs patterns
+runs/runs/detect/
+runs/runs/val/
+runs-yolo-v7/runs/test/
+
+*.model
+yolo-to-coco-json-3/
+.env
+Permutation1/
+labels/
+only_labels/
+resnet50_checkpoints/
+resnet50_checkpoints
