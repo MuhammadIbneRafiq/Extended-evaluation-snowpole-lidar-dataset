@@ -1,9 +1,0 @@
-# Permutation3 Dataset YAML
-path: c:\Users\x1 yoga\Documents\RA_5m_5L_6m_6L_7m_8m_9m_10m_11m\Permutation3  # dataset root dir
-train: train/  # train images
-val: valid/  # validation images
-test: test/  # test images
-
-# Classes
-names:
-  0: object
