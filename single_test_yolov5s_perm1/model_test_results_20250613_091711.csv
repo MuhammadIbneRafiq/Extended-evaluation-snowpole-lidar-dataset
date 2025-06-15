@@ -1,2 +1,0 @@
-model_name,model_type,weights_path,yaml_path,precision,recall,map50,map50_95,test_date
-yolov5s_perm1,yolov5,runs\runs\train\yolov5s_perm1\weights\best.pt,main_dataset.yaml,0.0,0.0,0.0,0.0,2025-06-13T09:20:52.412595
