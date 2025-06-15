@@ -1,0 +1,7 @@
+names:
+  0: pole
+nc: 1
+path: C:\Users\x1 yoga\Documents\RA_5m_5L_6m_6L_7m_8m_9m_10m_11m\converted_datasets\nearir_yolo
+test: test\images
+train: train\images
+val: val\images

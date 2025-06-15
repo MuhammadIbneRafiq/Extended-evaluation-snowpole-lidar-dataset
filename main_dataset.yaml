@@ -1,0 +1,20 @@
+# Main SnowPole Detection Dataset Configuration
+# Dataset: SnowPole Detection - A Comprehensive Dataset for Detection and Localization Using LiDAR Imaging in Nordic Winter Conditions
+
+# Dataset root path
+path: ../main_images/SnowPole Detection A Comprehensive Dataset for Detection and Localization Using LiDAR Imaging in Nordic Winter Conditions/SnowPole_Detection_Dataset
+
+# Paths to image directories (relative to path above)
+train: combined_color/train
+val: combined_color/valid
+test: combined_color/test
+
+# Number of classes
+nc: 1
+
+# Class names
+names:
+  0: pole
+
+# Additional modalities available: combined_color, nearir, range, reflec, signal
+# Labels are centralized in: labels/train, labels/valid, labels/test 

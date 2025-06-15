@@ -14,20 +14,8 @@ class ModelTester:
         self.results = []
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Mapping of permutations/models to their YAML files
-        self.yaml_mapping = {
-            'perm1': 'Permutation1.yaml',
-            'perm2': 'Permutation2.yaml', 
-            'perm3': 'Permutation3.yaml',
-            'perm4': 'Permutation4.yaml',
-            'perm5': 'Permutation5.yaml',
-            'perm6': 'Permutation6.yaml',
-            'signal': 'signal_dataset.yaml',
-            'reflec': 'reflec_dataset.yaml',
-            'range': 'range_dataset.yaml',
-            'nearir': 'nearir_dataset.yaml',
-            'combined': 'combined_dataset.yaml'
-        }
+        # Use main dataset YAML for all models since labels are centralized
+        self.main_yaml = 'main_dataset.yaml'
         
         # Try to find the YOLO repositories
         self.yolov5_path = self.find_yolo_repo('yolov5')
@@ -48,27 +36,8 @@ class ModelTester:
         return None
     
     def get_yaml_file(self, model_name):
-        """Get appropriate YAML file for model"""
-        model_lower = model_name.lower()
-        
-        # Check for specific permutation patterns
-        for key, yaml_file in self.yaml_mapping.items():
-            if key in model_lower:
-                yaml_path = self.base_dir / yaml_file
-                if yaml_path.exists():
-                    return str(yaml_path)
-        
-        # Default fallback - check if permutation number is in name
-        perm_match = re.search(r'perm(\d+)', model_lower)
-        if perm_match:
-            perm_num = perm_match.group(1)
-            yaml_file = f'Permutation{perm_num}.yaml'
-            yaml_path = self.base_dir / yaml_file
-            if yaml_path.exists():
-                return str(yaml_path)
-        
-        # Use dataset.yaml as default
-        return 'dataset.yaml'
+        """Get appropriate YAML file for model - using centralized main dataset"""
+        return self.main_yaml
     
     def find_model_weights(self):
         """Find all trained model weights in runs folders"""
@@ -113,7 +82,7 @@ class ModelTester:
         elif 'yolov7' in model_path_str or 'v7-tiny' in model_path_str:
             return 'yolov7'
         else:
-        return 'ultralytics'
+            return 'ultralytics'
     
     def test_yolov5_model(self, model_info):
         if not self.yolov5_path or not self.yolov5_path.exists():
@@ -121,7 +90,7 @@ class ModelTester:
             
         cmd = [
             sys.executable, 'val.py',
-            '--data', str(Path.cwd() / 'yolov5' / 'dataset.yaml'),
+            '--data', str(Path.cwd() / self.main_yaml),
             '--weights', str(Path.cwd() / model_info['weights']),
             '--img', '1024',
             '--batch', '32',
@@ -144,54 +113,55 @@ class ModelTester:
         if not self.yolov7_path or not self.yolov7_path.exists():
             return None
             
-            cmd = [
-                sys.executable, 'test.py',
-            '--data', str(Path.cwd() / 'yolov7' / 'dataset.yaml'),
-                '--weights', str(Path.cwd() / model_info['weights']),
-                '--img', '1024',
+        cmd = [
+            sys.executable, 'test.py',
+            '--data', str(Path.cwd() / self.main_yaml),
+            '--weights', str(Path.cwd() / model_info['weights']),
+            '--img', '1024',
             '--batch', '32',
-                '--conf', '0.001',
-                '--iou', '0.65',
-                '--device', 'cpu',
-                '--name', f"test_{model_info['name']}"
-            ]
-            
+            '--conf', '0.001',
+            '--iou', '0.65',
+            '--device', 'cpu',
+            '--name', f"test_{model_info['name']}"
+        ]
+        
         result = subprocess.run(cmd, cwd=self.yolov7_path, capture_output=True, text=True, timeout=600)
-            
-            if result.returncode == 0:
+        
+        if result.returncode == 0:
             return self.parse_yolo_results(result.stdout, model_info)
-            else:
+        else:
             print(f"YOLOv7 test failed for {model_info['name']}: {result.stderr}")
-            return None
+        return None
     
     def test_ultralytics_model(self, model_info):
         """Test Ultralytics YOLO model"""
-            cmd = [
-                'yolo', 'val',
-                f"model={model_info['weights']}",
-                f"data={model_info['yaml']}",
+        cmd = [
+            'yolo', 'val',
+            f"model={model_info['weights']}",
+            f"data={model_info['yaml']}",
             'imgsz=1024',
             'batch=8',
-                'conf=0.001',
-                'iou=0.65',
+            'conf=0.001',
+            'iou=0.65',
             'device=cpu',
-                f"name=test_{model_info['name']}_{self.timestamp}"
-            ]
-            
+            f"name=test_{model_info['name']}_{self.timestamp}"
+        ]
+        
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-            
-            if result.returncode == 0:
+        
+        if result.returncode == 0:
             return self.parse_yolo_results(result.stdout, model_info)
-            else:
+        else:
             print(f"Ultralytics CLI test failed for {model_info['name']}: {result.stderr}")
             return self.test_ultralytics_python_api(model_info)
     
     def test_ultralytics_python_api(self, model_info):
         """Test using Ultralytics Python API as fallback"""
+        try:
             from ultralytics import YOLO
             
             model = YOLO(model_info['weights'])
-        metrics = model.val(data=model_info['yaml'], imgsz=1024, batch=8, conf=0.001, iou=0.65, device=0)
+            metrics = model.val(data=model_info['yaml'], imgsz=1024, batch=8, conf=0.001, iou=0.65, device='cpu')
             
             return {
                 'model_name': model_info['name'],
@@ -204,6 +174,9 @@ class ModelTester:
                 'map50_95': getattr(metrics.box, 'map', 0),
                 'test_date': datetime.now().isoformat()
             }
+        except Exception as e:
+            print(f"Ultralytics Python API test failed for {model_info['name']}: {e}")
+            return None
             
     def parse_yolo_results(self, output, model_info):
         """Parse YOLO test results from output"""
@@ -223,6 +196,10 @@ class ModelTester:
             map50 = self.extract_metric(output, r'mAP@?\.?5[:\s]*([\d.]+)')
             map50_95 = self.extract_metric(output, r'mAP@?\.?5[:\-\.]*95[:\s]*([\d.]+)')
         
+        # Check for zero metrics which indicates missing labels issue
+        if precision == 0.0 and recall == 0.0 and map50 == 0.0 and map50_95 == 0.0:
+            print(f"⚠️  {model_info['name']}: All metrics are 0.0000 - this usually indicates missing ground truth labels or mismatched image/label names")
+        
         return {
             'model_name': model_info['name'],
             'model_type': model_info['type'],
@@ -239,15 +216,16 @@ class ModelTester:
         """Extract metric value using regex pattern"""
         match = re.search(pattern, text)
         if match:
-                return float(match.group(1))
+            return float(match.group(1))
         return 0.0
     
     def run_all_tests(self):
         """Run tests on all found models"""
         models = self.find_model_weights()
         
-        
         print(f"Found {len(models)} trained models to test")
+        print(f"Using dataset configuration: {self.main_yaml}")
+        print()
         
         for model_info in models:
             print(f"Testing: {model_info['name']} ({model_info['type']})")
@@ -309,24 +287,20 @@ class ModelTester:
         
         if not models:
             print("No trained models found!")
-            return []
+            return
         
         print(f"Found {len(models)} trained models:")
+        print(f"{'Model Name':<25} {'Type':<12} {'Weights Path':<50} {'YAML':<20}")
+        print("-" * 110)
         
-        for i, model_info in enumerate(models, 1):
-            yaml_path = Path(model_info['yaml'])
-            yaml_exists = yaml_path.exists() if model_info['yaml'] != 'dataset.yaml' else f"checking dataset.yaml"
-            print(f"{i}. {model_info['name']} ({model_info['type']})")
-            print(f"   Weights: {model_info['weights']}")
-            print(f"   YAML: {model_info['yaml']} - {yaml_exists}")
-            print()
-        
-        return models
+        for model in models:
+            print(f"{model['name']:<25} {model['type']:<12} {model['weights']:<50} {model['yaml']:<20}")
 
     def test_single_model(self, model_name):
-        """Test a single model by name"""
+        """Test a specific model by name"""
         models = self.find_model_weights()
         
+        # Find the model
         target_model = None
         for model in models:
             if model_name.lower() in model['name'].lower():
@@ -335,12 +309,15 @@ class ModelTester:
         
         if not target_model:
             print(f"Model '{model_name}' not found!")
+            print("Available models:")
+            for model in models:
+                print(f"  - {model['name']}")
             return
         
         print(f"Testing single model: {target_model['name']} ({target_model['type']})")
-        print(f"Weights: {target_model['weights']}")
-        print(f"YAML: {target_model['yaml']}")
+        print(f"Using dataset: {target_model['yaml']}")
         
+        # Test the model
         if target_model['type'] == 'yolov5':
             result = self.test_yolov5_model(target_model)
         elif target_model['type'] == 'yolov7':
@@ -348,41 +325,36 @@ class ModelTester:
         elif target_model['type'] == 'ultralytics':
             result = self.test_ultralytics_model(target_model)
         else:
-            print("Unknown model type")
+            print(f"Unknown model type: {target_model['type']}")
             return
         
         if result:
-            if result['map50'] == 0.0 and result['precision'] == 0.0:
-                print(f"⚠ Test completed but no labels found (0 metrics)")
-                print(f"  This usually means the dataset has images but no corresponding .txt label files")
-                print(f"  Check that each image has a corresponding .txt file with YOLO format annotations")
-            else:
-                print(f"✓ Test successful!")
-                print(f"  Precision: {result['precision']:.4f}")
-                print(f"  Recall: {result['recall']:.4f}")
-                print(f"  mAP@0.5: {result['map50']:.4f}")
-                print(f"  mAP@0.5:0.95: {result['map50_95']:.4f}")
+            self.results.append(result)
+            print(f"✓ Results: P={result['precision']:.4f}, R={result['recall']:.4f}, mAP50={result['map50']:.4f}, mAP50:95={result['map50_95']:.4f}")
+            
+            # Save single result
+            self.save_results(f'single_test_{model_name}')
         else:
-            print(f"✗ Test failed")
+            print(f"✗ Test failed for {target_model['name']}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Test all trained YOLO models')
-    parser.add_argument('--base-dir', default='.', help='Base directory to search for models and YAML files')
-    parser.add_argument('--output-dir', default='test_results', help='Directory to save test results')
-    parser.add_argument('--debug', action='store_true', help='Only list models without testing')
-    parser.add_argument('--test-single', help='Test a single model by name')
+    parser = argparse.ArgumentParser(description='Test YOLO models comprehensively')
+    parser.add_argument('--base-dir', default='.', help='Base directory')
+    parser.add_argument('--list-models', action='store_true', help='List available models without testing')
+    parser.add_argument('--single-model', type=str, help='Test a specific model by name')
+    parser.add_argument('--output-dir', default='test_results', help='Output directory for results')
     
     args = parser.parse_args()
     
     tester = ModelTester(args.base_dir)
     
-    if args.debug:
+    if args.list_models:
         tester.list_models_only()
-    elif args.test_single:
-        tester.test_single_model(args.test_single)
+    elif args.single_model:
+        tester.test_single_model(args.single_model)
     else:
-    tester.run_all_tests()
-    tester.save_results(args.output_dir)
+        tester.run_all_tests()
+        tester.save_results(args.output_dir)
 
 if __name__ == "__main__":
     main() 
