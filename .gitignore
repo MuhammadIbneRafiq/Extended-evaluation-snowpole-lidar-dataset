@@ -1,13 +1,16 @@
 datasets/
 SnowPole_Detection_Dataset/
 abc/
+data/
 venv/
+ultralytics/    
+yolov7/
 yolov5/
 *.zip
 *.voc
 detectron2-1.zip/
 Permutation*/
-
+RGB_Combinations/
 # Allow specific model weight folders
 !runs/runs/train/
 !runs-yolo-v7/runs/train/
