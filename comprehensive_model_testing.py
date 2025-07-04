@@ -11,7 +11,6 @@ class ModelTester:
     def __init__(self, base_dir='.'):
         self.base_dir = Path(base_dir)
         self.results = []
-        self.main_yaml = 'dataset.yaml'
         self.yolov5_path = Path.cwd() / 'yolov5'
         self.yolov7_path = Path.cwd() / 'yolov7'
         self.ultralytics_path = Path.cwd() / 'ultralytics'
@@ -19,12 +18,8 @@ class ModelTester:
     def find_model_weights(self):
         models = []
         runs_patterns = [
-            'runs/runs/train/*/weights/best.pt',
-            'runs-yolo-v7/runs/train/*/weights/best.pt',
-            'runs/train/*/weights/best.pt',
-            'yolov5/runs/train/*/weights/best.pt',
-            'yolov7/runs/train/*/weights/best.pt',
-            'ultralytics/runs/train/*/weights/best.pt'
+            'runs/runs/train/*/weights/best.pt',  # This one works for YOLOv5
+            'runs-yolo-v7/runs/train/*/weights/best.pt',  # This one works for YOLOv7
         ]
         
         for pattern in runs_patterns:
@@ -37,107 +32,201 @@ class ModelTester:
                     continue
                 
                 model_type = self._detect_model_type(weight_path)
+                dataset_file = self._get_dataset_for_model(model_name, model_type)
                 
                 models.append({
                     'name': model_name,
                     'type': model_type,
                     'weights': str(weight_path),
-                    'yaml': self.main_yaml
+                    'yaml': dataset_file
                 })
         
         return models
     
+    def _get_dataset_for_model(self, model_name, model_type):
+        """Match each model with its corresponding dataset file"""
+        model_name_lower = model_name.lower()
+        
+        if model_type == 'yolov5':
+            # For yolov5 models, check what permutation they were trained on
+            if 'perm1' in model_name_lower:
+                return 'Permutation1.yaml'
+            elif 'perm2' in model_name_lower:
+                return 'Permutation2.yaml'
+            elif 'perm3' in model_name_lower:
+                return 'Permutation3.yaml'
+            elif 'perm4' in model_name_lower:
+                return 'Permutation4.yaml'
+            elif 'perm5' in model_name_lower:
+                return 'Permutation5.yaml'
+            elif 'perm6' in model_name_lower:
+                return 'Permutation6.yaml'
+            else:
+                return 'dataset.yaml'  # fallback
+                
+        elif model_type == 'yolov7':
+            # For yolov7 models, check what permutation they were trained on
+            if 'perm1' in model_name_lower:
+                return 'Permutation1.yaml'
+            elif 'perm2' in model_name_lower:
+                return 'Permutation2.yaml'
+            elif 'perm3' in model_name_lower:
+                return 'Permutation3.yaml'
+            elif 'perm4' in model_name_lower:
+                return 'Permutation4.yaml'
+            elif 'perm5' in model_name_lower:
+                return 'Permutation5.yaml'
+            elif 'perm6' in model_name_lower:
+                return 'Permutation6.yaml'
+            else:
+                return 'dataset.yaml'  # fallback
+        else:
+            return 'dataset.yaml'  # fallback for ultralytics models
+    
     def _detect_model_type(self, model_path):
         model_path_str = str(model_path).lower()
         
-        if 'yolov5' in model_path_str or any(name in model_path_str for name in ['exp', 'exp2', 'exp3', 'exp5', 'exp6']):
+        if 'runs/runs/train' in model_path_str or 'yolov5' in model_path_str:
             return 'yolov5'
-        elif 'yolov7' in model_path_str or 'v7-tiny' in model_path_str:
+        elif 'runs-yolo-v7' in model_path_str or 'yolov7' in model_path_str:
             return 'yolov7'
         else:
             return 'ultralytics'
     
     def test_yolov5_model(self, model_info):
-        # Convert weights path to relative path from yolov5 directory
+        # For YOLOv5, the weights path needs to be relative to the main directory, not yolov5 directory
         weights_path = Path(model_info['weights'])
         if weights_path.is_absolute():
-            # Make relative to current working directory
+            # Make relative to yolov5 directory by going up one level
             try:
-                relative_weights = weights_path.relative_to(Path.cwd())
+                # The path is like: /main_dir/runs/runs/train/model/weights/best.pt
+                # From yolov5 directory, it should be: ../runs/runs/train/model/weights/best.pt
+                relative_weights = Path('..') / weights_path.relative_to(Path.cwd())
             except ValueError:
                 relative_weights = weights_path
         else:
-            relative_weights = weights_path
-            
-        print(f"Relative weights path: {relative_weights}")
+            relative_weights = Path('..') / weights_path
             
         cmd = [
             sys.executable, 'val.py',
-            '--data', 'dataset.yaml',
+            '--data', model_info['yaml'],  # Use the specific dataset for this model
             '--weights', str(relative_weights),
             '--img', '1024',
-            '--batch', '32',
+            '--batch', '4',  # Smaller batch for testing
             '--conf', '0.001',
             '--iou', '0.65',
-            '--device', '0',
+            '--device', 'cpu',  # Use CPU for now to avoid GPU issues
             '--name', f"test_{model_info['name']}"
         ]
         
-        result = subprocess.run(cmd, cwd=self.yolov5_path, capture_output=True, text=True, timeout=600)
-        return self.parse_yolo_results(result.stdout, model_info)
-    
+        print(f"Testing YOLOv5 model: {model_info['name']} with dataset: {model_info['yaml']}")
+        print(f"Command: {' '.join(cmd)}")
+        
+        # Run with real-time output visible in terminal
+        process = subprocess.Popen(cmd, cwd=self.yolov5_path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
+        
+        output_lines = []
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip())  # Show in terminal
+                output_lines.append(output)  # Capture for parsing
+        
+        full_output = ''.join(output_lines)
+        print("=" * 80)
+        
+        return self.parse_yolo_results(full_output, model_info)
+
     def test_yolov7_model(self, model_info):
         """Test YOLOv7 model"""
         if not self.yolov7_path or not self.yolov7_path.exists():
             return None
         
-        # Convert weights path to relative path from yolov7 directory
+        # For YOLOv7, similar path handling
         weights_path = Path(model_info['weights'])
         if weights_path.is_absolute():
-            # Make relative to current working directory
             try:
-                relative_weights = weights_path.relative_to(Path.cwd())
+                relative_weights = Path('..') / weights_path.relative_to(Path.cwd())
             except ValueError:
                 relative_weights = weights_path
         else:
-            relative_weights = weights_path
-                        
+            relative_weights = Path('..') / weights_path
+            
         cmd = [
             sys.executable, 'test.py',
-            '--data', 'dataset.yaml',
+            '--data', model_info['yaml'],  # Use the specific dataset for this model
             '--weights', str(relative_weights),
             '--img', '1024',
-            '--batch', '32',
+            '--batch', '4',
             '--conf', '0.001',
             '--iou', '0.65',
-            '--device', '0',
+            '--device', 'cpu',
             '--name', f"test_{model_info['name']}"
         ]
         
-        result = subprocess.run(cmd, cwd=self.yolov7_path, capture_output=True, text=True, timeout=600)
-        return self.parse_yolo_results(result.stdout, model_info)
-    
+        print(f"Testing YOLOv7 model: {model_info['name']} with dataset: {model_info['yaml']}")
+        print(f"Command: {' '.join(cmd)}")
+        print(f"Working directory: {self.yolov7_path}")
+        print("=" * 80)
+        
+        # Run with real-time output visible in terminal
+        process = subprocess.Popen(cmd, cwd=self.yolov7_path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
+        
+        output_lines = []
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip())  # Show in terminal
+                output_lines.append(output)  # Capture for parsing
+        
+        full_output = ''.join(output_lines)
+        print("=" * 80)
+        
+        return self.parse_yolo_results(full_output, model_info)
+
     def test_ultralytics_model(self, model_info):
         """Test Ultralytics YOLO model"""
         cmd = [
             'yolo', 'val',
             f"model={model_info['weights']}",
-            f"data=dataset.yaml",
+            f"data={model_info['yaml']}",
             'imgsz=1024',
-            'batch=8',
+            'batch=4',
             'conf=0.001',
             'iou=0.65',
-            'device=0',
+            'device=cpu',
             f"name=test_{model_info['name']}"
         ]
         
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-        return self.parse_yolo_results(result.stdout, model_info)
+        print(f"Testing Ultralytics model: {model_info['name']} with dataset: {model_info['yaml']}")
+        print(f"Command: {' '.join(cmd)}")
+        print("=" * 80)
+        
+        # Run with real-time output visible in terminal
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
+        
+        output_lines = []
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip())  # Show in terminal
+                output_lines.append(output)  # Capture for parsing
+        
+        full_output = ''.join(output_lines)
+        print("=" * 80)
+        
+        return self.parse_yolo_results(full_output, model_info)
 
     
     def test_ultralytics_python_api(self, model_info):        
         model = YOLO(model_info['weights'])
-        metrics = model.val(data='dataset.yaml', imgsz=1024, batch=8, conf=0.001, iou=0.65, device=0)
+        metrics = model.val(data=model_info['yaml'], imgsz=1024, batch=4, conf=0.001, iou=0.65, device='cpu')
         
         return {
             'model_name': model_info['name'],
@@ -167,7 +256,10 @@ class ModelTester:
             map50 = self.extract_metric(output, r'mAP@?\.?5[:\s]*([\d.]+)')
             map50_95 = self.extract_metric(output, r'mAP@?\.?5[:\-\.]*95[:\s]*([\d.]+)')
 
-        return {
+        # Extract inference speed (e.g., "181.4ms inference")
+        inference_speed = self.extract_inference_speed(output)
+
+        result = {
             'model_name': model_info['name'],
             'model_type': model_info['type'],
             'weights_path': model_info['weights'],
@@ -176,8 +268,14 @@ class ModelTester:
             'recall': recall,
             'map50': map50,
             'map50_95': map50_95,
+            'inference_speed_ms': inference_speed,
             'test_date': datetime.now().isoformat()
         }
+        
+        # Save individual JSON file for this model
+        self.save_individual_result(result)
+        
+        return result
     
     def extract_metric(self, text, pattern):
         """Extract metric value using regex pattern"""
@@ -186,8 +284,40 @@ class ModelTester:
             return float(match.group(1))
         return 0.0
     
+    def extract_inference_speed(self, text):
+        """Extract inference speed in milliseconds from output"""
+        # Look for patterns like "181.4ms inference" or "Speed: 0.5ms preprocess, 3.7ms inference"
+        patterns = [
+            r'([\d.]+)ms inference',
+            r'Speed:.*?([\d.]+)ms inference',
+            r'inference.*?([\d.]+)ms'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return float(match.group(1))
+        
+        return 0.0
+    
+    def save_individual_result(self, result):
+        """Save individual model result to JSON file"""
+        output_dir = Path('test_results')
+        output_dir.mkdir(exist_ok=True)
+        
+        filename = f"{result['model_name']}_{result['model_type']}_results.json"
+        filepath = output_dir / filename
+        
+        with open(filepath, 'w') as f:
+            json.dump(result, f, indent=2)
+        
+        print(f"✅ Saved individual results: {filepath}")
+        print(f"📊 {result['model_name']}: P={result['precision']:.3f}, R={result['recall']:.3f}, mAP50={result['map50']:.3f}, mAP50:95={result['map50_95']:.3f}, Speed={result['inference_speed_ms']:.1f}ms")
+    
     def run_all_tests(self):
         models = self.find_model_weights()
+        print(f"Found {len(models)} models to test")
+        
         for model_info in models:           
             if model_info['type'] == 'yolov5':
                 result = self.test_yolov5_model(model_info)
@@ -197,17 +327,34 @@ class ModelTester:
                 result = self.test_ultralytics_model(model_info)
 
             self.results.append(result)
-            print(f"✓ {model_info['name']}: P={result['precision']:.3f}, R={result['recall']:.3f}, mAP50={result['map50']:.3f}, mAP50:95={result['map50_95']:.3f}")
+            # Individual results are now printed in save_individual_result method
 
     
     def save_results(self, output_dir='test_results'):        
         output_path = Path(output_dir)
         output_path.mkdir(exist_ok=True)
         
-        with open(output_path / f'model_test_results.json', 'w') as f:
+        # Save combined results
+        with open(output_path / f'model_test_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json', 'w') as f:
             json.dump(self.results, f, indent=2)
         
-        print(f"\n{'Model Name':<25} {'Type':<12} {'Precision':<10} {'Recall':<10} {'mAP50':<10} {'mAP50:95':<10}")       
+        # Also save a CSV for easy viewing
+        import csv
+        csv_file = output_path / f'model_test_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        with open(csv_file, 'w', newline='') as f:
+            if self.results:
+                writer = csv.DictWriter(f, fieldnames=self.results[0].keys())
+                writer.writeheader()
+                writer.writerows(self.results)
+        
+        print(f"\n{'Model Name':<25} {'Type':<12} {'Precision':<10} {'Recall':<10} {'mAP50':<10} {'mAP50:95':<10} {'Speed(ms)':<10}")
+        print("=" * 102)
+        for result in self.results:
+            print(f"{result['model_name']:<25} {result['model_type']:<12} {result['precision']:<10.3f} {result['recall']:<10.3f} {result['map50']:<10.3f} {result['map50_95']:<10.3f} {result['inference_speed_ms']:<10.1f}")
+        
+        print(f"\n✅ All results saved to: {output_path}")
+        print(f"📊 Combined JSON: model_test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        print(f"📈 CSV file: model_test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
 
 tester = ModelTester()
 tester.run_all_tests()
