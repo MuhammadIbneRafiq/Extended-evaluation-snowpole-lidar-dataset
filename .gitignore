@@ -5,6 +5,7 @@ data/
 venv/
 ultralytics/    
 yolov7/
+trained_weights/
 yolov5/
 *.zip
 *.voc
