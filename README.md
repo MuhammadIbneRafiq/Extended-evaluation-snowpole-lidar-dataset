@@ -12,7 +12,7 @@
 2. Department of Computer Science, University of Gävle, Gävle, Sweden
 3. Department of Mathematics and Computer Science, Eindhoven University of Technology, Netherlands
 
-**Contact:** durga.prasad.bavirisetti@hig.se
+**Contact:** m.i.rafiq@student.tue.nl || muhammadibnerafiq@gmail.com
 
 ## Abstract
 This study presents an extensive evaluation of YOLO object detection architectures for identifying snow poles in LiDAR-derived imagery under challenging Nordic conditions. Building on our prior SnowPole Detection dataset[1] and LiDAR-GNSS localization framework[2], we benchmark six YOLO models—YOLOv5s, YOLOv7-tiny, YOLOv8n, YOLOv9t, YOLOv10n, and YOLOv11n—across multiple input modalities. We assess single-channel modalities (Reflectance, Signal, Near-Infrared) and six pseudo-color combinations derived from these channels. Model performance is quantified using Precision, Recall, mAP@50, mAP@50-95, and GPU inference latency. To enable systematic comparison, we define a composite Rank Score combining accuracy and real-time performance.
@@ -167,10 +167,11 @@ python scripts/inference_on_single_image.py --image path/to/image.jpg
 If you use this framework in your research, please cite:
 ```bibtex
 @misc{multispectral2024yolo,
-  title={Multispectral YOLO Benchmarking: A Comprehensive Framework for Object Detection Across Spectral Combinations},
-  author={Your Name},
-  year={2024},
-  howpublished={\url{https://github.com/your-repo-url}},
+  title={Extended Evaluation of SnowPole Detection for Machine-Perceivable Infrastructure for Nordic Winter Conditions: A Comparative Study of Object Detection Models
+},
+  author={Durga Prasad Bavirisetti, Muhammad Ibne Rafiq, Shaira Tabassum, Gabriel Hanssen Kiss, Frank Lindseth},
+  year={2025},
+  howpublished={\url{[https://github.com/MuhammadIbneRafiq/Extended-evaluation-snowpole-lidar-dataset]},
   note={Comprehensive benchmarking and reproducible research for multispectral object detection}
 }
 ```
