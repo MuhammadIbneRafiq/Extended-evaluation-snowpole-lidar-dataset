@@ -166,7 +166,7 @@ python scripts/inference_on_single_image.py --image path/to/image.jpg
 
 If you use this framework in your research, please cite:
 ```bibtex
-@misc{multispectral2024yolo,
+@misc{ExtendEvalSnowYolo2025,
   title={Extended Evaluation of SnowPole Detection for Machine-Perceivable Infrastructure for Nordic Winter Conditions: A Comparative Study of Object Detection Models
 },
   author={Durga Prasad Bavirisetti, Muhammad Ibne Rafiq, Shaira Tabassum, Gabriel Hanssen Kiss, Frank Lindseth},
