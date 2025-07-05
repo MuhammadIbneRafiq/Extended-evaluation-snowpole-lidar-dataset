@@ -1,7 +1,25 @@
-# Multispectral YOLO Benchmarking & Research Framework
+# Extended Evaluation of SnowPole Detection for Machine-Perceivable Infrastructure for Nordic Winter Conditions: A Comparative Study of Object Detection Models
+
+## Authors
+- Durga Prasad Bavirisetti¹,²
+- Muhammad Ibne Rafiq³
+- Shaira Tabassum¹
+- Gabriel Hanssen Kiss¹
+- Frank Lindseth¹
+
+## Affiliations
+1. Department of Computer Science, Norwegian University of Science and Technology (NTNU), Trondheim, Norway
+2. Department of Computer Science, University of Gävle, Gävle, Sweden
+3. Department of Mathematics and Computer Science, Eindhoven University of Technology, Netherlands
+
+**Contact:** durga.prasad.bavirisetti@hig.se
 
 ## Abstract
-A comprehensive framework for training, benchmarking, and evaluating YOLO models (YOLOv5, YOLOv7, YOLOv8+) on multispectral datasets with various spectral channel combinations. This repository enables reproducible research, systematic comparison, and robust deployment for multispectral object detection across different spectral permutations.
+This study presents an extensive evaluation of YOLO object detection architectures for identifying snow poles in LiDAR-derived imagery under challenging Nordic conditions. Building on our prior SnowPole Detection dataset[1] and LiDAR-GNSS localization framework[2], we benchmark six YOLO models—YOLOv5s, YOLOv7-tiny, YOLOv8n, YOLOv9t, YOLOv10n, and YOLOv11n—across multiple input modalities. We assess single-channel modalities (Reflectance, Signal, Near-Infrared) and six pseudo-color combinations derived from these channels. Model performance is quantified using Precision, Recall, mAP@50, mAP@50-95, and GPU inference latency. To enable systematic comparison, we define a composite Rank Score combining accuracy and real-time performance.
+
+Results show YOLOv9t achieves the highest detection accuracy, while YOLOv11n offers the best balance between accuracy and inference speed, making it suitable for embedded real-time applications. Pseudo-color combinations, especially those fusing Near-Infrared, Signal, and Reflectance, outperform single modalities and yield the highest Rank Scores. We recommend multimodal LiDAR configurations such as Combination 4 and Combination 5 to enhance detection robustness.
+
+All datasets, code, and trained models are publicly available to support reproducibility via our [GitHub repository](https://github.com/MuhammadIbneRafiq/Extended-evaluation-snowpole-lidar-dataset) and the [Mendeley dataset archive](https://data.mendeley.com/datasets/tt6rbx7s3h/3).
 
 ## 📁 Project Structure
 ```
@@ -174,3 +192,8 @@ If you use this framework in your research, please cite:
 ---
 
 **⭐ Star this repository if it helps your research!**
+
+## References
+[1] D. P. Bavirisetti, G. H. Kiss, P. Arnesen, H. Seter, S. Tabassum, and F. Lindseth, "SnowPole Detection: A comprehensive dataset for detection and localization using LiDAR imaging in Nordic winter conditions," Data in Brief, vol. 59, p. 111403, 2025.
+
+[2] D. P. Bavirisetti, G. H. Kiss, and F. Lindseth, "A Pole Detection and Geospatial Localization Framework using LiDAR-GNSS Data Fusion," in 2024 27th International Conference on Information Fusion (FUSION), 2024, pp. 1–8.
