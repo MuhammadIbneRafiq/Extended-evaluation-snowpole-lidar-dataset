@@ -6,12 +6,10 @@ import time
 from pathlib import Path
 from ultralytics import YOLO
 import warnings
-warnings.filterwarnings('ignore')
 
 class WorkingMultiSpectralDetector:
     def __init__(self, base_dir=".", version_config=None):
         self.base_dir = Path(base_dir)
-
         dataset_path = self.base_dir / "main_images/SnowPole Detection A Comprehensive Dataset for Detection and Localization Using LiDAR Imaging in Nordic Winter Conditions/SnowPole_Detection_Dataset"
         self.modality_paths = {
             'signal': dataset_path / "signal/test",
@@ -21,22 +19,15 @@ class WorkingMultiSpectralDetector:
             'combined_color': dataset_path / "combined_color/test"
         }
         
-        self.weights_dir = self.base_dir / "trained_weights"
+        self.weights_dir = Path("trained_weights")
         
-        # RGB combinations using working ultralytics weights
-        self.rgb_combinations = {
-            1: {'R': 'reflec', 'G': 'signal', 'B': 'nearir', 'weight': 'detect_v8n_perm1_best.pt'},
-            3: {'R': 'reflec', 'G': 'nearir', 'B': 'signal', 'weight': 'detect_v8n_perm3_best.pt'},
-            4: {'R': 'reflec', 'G': 'nearir', 'B': 'range', 'weight': 'detect_v8n_perm4_best.pt'},
-            5: {'R': 'signal', 'G': 'nearir', 'B': 'range', 'weight': 'detect_v8n_perm5_best.pt'},
-            6: {'R': 'nearir', 'G': 'signal', 'B': 'range', 'weight': 'detect_v8n_perm6_best.pt'}
-        }
+        # Individual modality configurations
         self.individual_modalities = {
-            'signal': {'color': 'green', 'weight': 'detect_train_signal_11n_best.pt'},
-            'reflec': {'color': 'purple', 'weight': 'detect_train_reflec_11n_best.pt'}, 
-            'nearir': {'color': 'red', 'weight': 'detect_train_narir_11n_best.pt'},
-            'range': {'color': 'blue', 'weight': 'detect_train_range_11n_best.pt'},
-            'combined_color': {'color': 'orange', 'weight': 'detect_train_combcolor_11n_best.pt'}
+            'signal': {'color': 'green', 'weight': 'train_signal_11n/weights/best.pt'},
+            'reflec': {'color': 'purple', 'weight': 'train_reflec_11n/weights/best.pt'}, 
+            'nearir': {'color': 'red', 'weight': 'train_narir_11n/weights/best.pt'},
+            'range': {'color': 'blue', 'weight': 'train_range_11n/weights/best.pt'},
+            'combined_color': {'color': 'orange', 'weight': 'train_combcolor_11n/weights/best.pt'}
         }
         if version_config:
             self.individual_modalities = version_config
@@ -45,12 +36,6 @@ class WorkingMultiSpectralDetector:
         self._load_models()
         
     def _load_models(self):        
-        # Load RGB combination models
-        for combo_id, combo_info in self.rgb_combinations.items():
-            weight_path = self.weights_dir / combo_info['weight']
-            model = YOLO(str(weight_path))
-            self.models[f'combo_{combo_id}'] = model
-                
         # Load individual modality models
         for modality, mod_info in self.individual_modalities.items():
             weight_path = self.weights_dir / mod_info['weight']
@@ -145,36 +130,10 @@ class WorkingMultiSpectralDetector:
     def draw_detections(self, ax, detections, img_height, img_width, modality=None):
         """Draw detection boxes with non-overlapping labels."""
         
-        # Filter detections for NEARIR modality to only show specific detections
+        # For NEARIR modality, show all detections without filtering
         if modality == 'nearir':
-            print(f"Original NEARIR detections: {[(d[4], d[0]) for d in detections]}")  # Debug: show conf and x1
-            filtered_detections = []
-            conf_01_detections = []
-            conf_06_detections = []
-            
-            for detection in detections:
-                x1, y1, x2, y2, conf, cls = detection
-                print(f"Checking detection: conf={conf:.3f}")  # Debug
-                # Separate detections by confidence
-                if abs(conf - 0.1) < 0.05:
-                    print(f"Found 0.1 detection at x={x1}")  # Debug
-                    conf_01_detections.append(detection)
-                elif abs(conf - 0.6) < 0.05:
-                    print(f"Found 0.6 detection at x={x1}")  # Debug
-                    conf_06_detections.append(detection)
-            
-            # Keep only the leftmost 0.1 detection (sort by x1 coordinate)
-            if conf_01_detections:
-                conf_01_detections.sort(key=lambda d: d[0])  # Sort by x1
-                filtered_detections.append(conf_01_detections[0])  # Keep only the leftmost
-                print(f"Kept leftmost 0.1 detection at x={conf_01_detections[0][0]}")  # Debug
-            
-            # Keep all 0.6 detections
-            filtered_detections.extend(conf_06_detections)
-            print(f"Added {len(conf_06_detections)} 0.6 detections")  # Debug
-            print(f"Final filtered detections: {[(d[4], d[0]) for d in filtered_detections]}")  # Debug
-            
-            detections = filtered_detections
+            # Round confidences to 1 decimal place for display
+            print(f"All NEARIR detections: {[(round(d[4], 1), int(d[0])) for d in detections]}")  # Debug: show conf and x1
         
         for i, (x1, y1, x2, y2, conf, cls) in enumerate(detections):
             # Draw bounding box
@@ -183,7 +142,7 @@ class WorkingMultiSpectralDetector:
             ax.add_patch(rect)
             
             # Simple label placement with vertical staggering
-            label_text = f'pole {conf:.1f}'
+            label_text = f'pole {conf:.1f}' if modality == 'nearir' else f'pole {conf:.2f}'
             
             # Stagger labels vertically to avoid overlap
             label_y = y1 - 15 - (i * 18)  # Each label 18 pixels higher than the previous
@@ -193,11 +152,14 @@ class WorkingMultiSpectralDetector:
                            edgecolor='white', linewidth=0.5))
 
     def create_comprehensive_visualization(self, image_name="image_0.png", conf_threshold=0.1, output_filename="single_modality_pole_detection.png"):
-        """Create single modality visualization with clean detection labels"""
-        
+        """Create visualization with clean detection labels"""
         
         fig = plt.figure(figsize=(20, 10))
-        fig.suptitle('Snow Pole Detection: Individual Modalities with Confidence Scores', 
+        if 'combinations' in output_filename:
+            fig.suptitle('Snow Pole Detection: RGB Combinations with Confidence Scores', 
+                     fontsize=16, fontweight='bold')
+        else:
+            fig.suptitle('Snow Pole Detection: Individual Modalities with Confidence Scores', 
                      fontsize=16, fontweight='bold')
         
         # Create 2x3 grid for 5 modalities
@@ -232,7 +194,20 @@ class WorkingMultiSpectralDetector:
                 self.draw_detections(ax, detections, h, w, modality)
                 
                 # Clean title
-                ax.set_title(f'{modality.upper()}\n{len(detections)} detections', 
+                title = modality.upper()
+                if 'combinations' in output_filename:
+                    if modality == 'signal':
+                        title = 'Combination 1'
+                    elif modality == 'reflec':
+                        title = 'Combination 3'
+                    elif modality == 'nearir':
+                        title = 'Combination 4'
+                    elif modality == 'range':
+                        title = 'Combination 5'
+                    elif modality == 'combined_color':
+                        title = 'Combined Color'
+                
+                ax.set_title(f'{title}\n{len(detections)} detections', 
                            fontsize=12, fontweight='bold')
                 ax.axis('off')
                 
@@ -250,30 +225,17 @@ class WorkingMultiSpectralDetector:
 if __name__ == '__main__':
     versions = {
         "8": {
-            'signal': {'color': 'green', 'weight': 'detect_train_signal_8N_best.pt'},
-            'reflec': {'color': 'purple', 'weight': 'detect_train_reflec_8n_best.pt'},
-            'nearir': {'color': 'red', 'weight': 'detect_train_narir_8n_best.pt'},
-            'range': {'color': 'blue', 'weight': 'detect_train_range_8N_best.pt'},
-            'combined_color': {'color': 'orange', 'weight': 'detect_train_combcolor_8n_best.pt'}
-        },
-        "9": {
-            'signal': {'color': 'green', 'weight': 'detect_train_signal_9t_best.pt'},
-            'reflec': {'color': 'purple', 'weight': 'detect_train_reflec_9t_best.pt'},
-            'nearir': {'color': 'red', 'weight': 'detect_train_narir_9t_best.pt'},
-            'range': {'color': 'blue', 'weight': 'detect_train_range_9t_best.pt'},
-            'combined_color': {'color': 'orange', 'weight': 'detect_train_combcolor_9t2_best.pt'}
-        },
-        "10": {
-            'signal': {'color': 'green', 'weight': 'detect_train_signal_10n_best.pt'},
-            'reflec': {'color': 'purple', 'weight': 'detect_train_reflec_10N_best.pt'},
-            'nearir': {'color': 'red', 'weight': 'detect_train_narir_10n_best.pt'},
-            'range': {'color': 'blue', 'weight': 'detect_train_range_10n_best.pt'},
-            'combined_color': {'color': 'orange', 'weight': 'detect_train_combcolor_10n_best.pt'}
+            'signal': {'color': 'green', 'weight': 'train_signal_8N/weights/best.pt'},
+            'reflec': {'color': 'purple', 'weight': 'train_reflec_8n/weights/best.pt'}, 
+            'nearir': {'color': 'red', 'weight': 'train_narir_8n/weights/best.pt'},
+            'range': {'color': 'blue', 'weight': 'train_range_8N/weights/best.pt'},
+            'combined_color': {'color': 'orange', 'weight': 'train_combcolor_8n/weights/best.pt'}
         }
     }
 
+    # First run individual modalities
     for version, config in versions.items():
-        print(f"----- Running for version {version} -----")
-        detector = WorkingMultiSpectralDetector(version_config=config)
+        print(f"----- Running individual modalities for version {version} -----")
+        detector = WorkingMultiSpectralDetector(base_dir="data", version_config=config)
         output_file = f"single_modality_pole_detection_v{version}.png"
         detector.create_comprehensive_visualization("image_0.png", conf_threshold=0.05, output_filename=output_file)
