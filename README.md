@@ -12,7 +12,7 @@
 2. Department of Computer Science, University of Gävle, Gävle, Sweden
 3. Department of Mathematics and Computer Science, Eindhoven University of Technology, Netherlands
 
-**Contact:** m.i.rafiq@student.tue.nl || muhammadibnerafiq@gmail.com
+**Contact:** muhammadibnerafiq@gmail.com || durga.prasad.bavirisetti@hig.se
 
 ## Abstract
 This study presents an extensive evaluation of YOLO object detection architectures for identifying snow poles in LiDAR-derived imagery under challenging Nordic conditions. Building on our prior SnowPole Detection dataset[1] and LiDAR-GNSS localization framework[2], we benchmark six YOLO models—YOLOv5s, YOLOv7-tiny, YOLOv8n, YOLOv9t, YOLOv10n, and YOLOv11n—across multiple input modalities. We assess single-channel modalities (Reflectance, Signal, Near-Infrared) and six pseudo-color combinations derived from these channels. Model performance is quantified using Precision, Recall, mAP@50, mAP@50-95, and GPU inference latency. To enable systematic comparison, we define a composite Rank Score combining accuracy and real-time performance.
