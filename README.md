@@ -33,21 +33,6 @@ project-root/
 │   ├── inference_on_single_image.py  # Single image inference
 │   ├── thebiggermodupdated.py   # Main benchmarking script
 │   └── visualize_ground_truth.py # Ground truth visualization
-├── trained_weights/             # All trained model weights organized by model type
-│   ├── train_signal_*/          # Signal modality models (v8-v11)
-│   ├── train_reflec_*/          # Reflectance modality models (v8-v11)
-│   ├── train_nearir_*/          # Near-IR modality models (v8-v11)
-│   ├── train_range_*/           # Range modality models (v8-v11)
-│   ├── train_combination*_*/    # Combination models (v8-v11)
-│   ├── yolov5s_combination*/    # YOLOv5s combination models
-│   └── yolov7-tiny-*/           # YOLOv7-tiny models
-├── inference/                   # Inference results for different models
-│   ├── signal_v*_image_1967/    # Signal modality inference results
-│   ├── reflec_v*_image_1967/    # Reflectance modality inference results
-│   ├── nearir_v*_image_1967/    # Near-IR modality inference results
-│   ├── range_v*_image_1967/     # Range modality inference results
-│   ├── combined_color_v*_image_1967/  # Combined color inference results
-│   └── perm*_v*_image_1967/     # Permutation/combination inference results
 ├── results/                     # Evaluation results and visualizations
 │   ├── ground_truth_*.png       # Ground truth visualizations
 │   └── permutation_results/     # Spectral permutation analysis
@@ -60,6 +45,9 @@ project-root/
 ├── requirements_multispectral.txt  # Python dependencies
 └── README.md                   # This file
 ```
+
+## Trained Weights and Inference images
+- **Link to drive** https://drive.google.com/file/d/18pZshkm-Yu9zKrhGDE5CMTTY9XbmAlwF/view?usp=sharing
 
 ## 🔬 Reproducibility
 
