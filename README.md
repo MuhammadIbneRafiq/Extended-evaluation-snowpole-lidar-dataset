@@ -24,32 +24,40 @@ All datasets, code, and trained models are publicly available to support reprodu
 ## 📁 Project Structure
 ```
 project-root/
-├── data/                        # All datasets and label files
-│   ├── main_images/             # Raw multispectral images
-│   ├── labels/                  # YOLO-format labels
-│   ├── Combinations_yolo_format/# Dataset combinations in YOLO format
-│   ├── VOC_COMBINATION_12.v1i.voc/  # VOC format dataset
-│   └── yolo-to-coco-json-3/     # Format conversion utilities
-├── scripts/                     # Data prep, training, and evaluation scripts
+├── data/                        # Dataset files currently on gitignore, get them from Mendeley with the link from the abstract
+├── scripts/                     # Data preparation, training, and evaluation scripts
 │   ├── create_combinations.py   # Generate spectral combinations
 │   ├── create_correct_combinations.py  # Validate combinations
 │   ├── generate_real_yolo_comparison.py  # Performance comparison
 │   ├── plot_permutations.py     # Visualization utilities
 │   ├── inference_on_single_image.py  # Single image inference
-│   └── thebiggermodupdated.py   # Main benchmarking script
-├── models/                      # Model weights and checkpoints
-│   └── trained_weights/         # All trained model weights
-├── results/                     # All results, outputs, and figures
-│   ├── permutation_results/     # Spectral permutation visualizations
-│   ├── runs-yolo-v7/           # YOLOv7 training outputs
-│   ├── *.png                   # Result figures and comparisons
-│   └── *.json                  # Model performance metrics
+│   ├── thebiggermodupdated.py   # Main benchmarking script
+│   └── visualize_ground_truth.py # Ground truth visualization
+├── trained_weights/             # All trained model weights organized by model type
+│   ├── train_signal_*/          # Signal modality models (v8-v11)
+│   ├── train_reflec_*/          # Reflectance modality models (v8-v11)
+│   ├── train_nearir_*/          # Near-IR modality models (v8-v11)
+│   ├── train_range_*/           # Range modality models (v8-v11)
+│   ├── train_combination*_*/    # Combination models (v8-v11)
+│   ├── yolov5s_combination*/    # YOLOv5s combination models
+│   └── yolov7-tiny-*/           # YOLOv7-tiny models
+├── inference/                   # Inference results for different models
+│   ├── signal_v*_image_1967/    # Signal modality inference results
+│   ├── reflec_v*_image_1967/    # Reflectance modality inference results
+│   ├── nearir_v*_image_1967/    # Near-IR modality inference results
+│   ├── range_v*_image_1967/     # Range modality inference results
+│   ├── combined_color_v*_image_1967/  # Combined color inference results
+│   └── perm*_v*_image_1967/     # Permutation/combination inference results
+├── results/                     # Evaluation results and visualizations
+│   ├── ground_truth_*.png       # Ground truth visualizations
+│   └── permutation_results/     # Spectral permutation analysis
 ├── yolov5/                      # YOLOv5 codebase
 ├── yolov7/                      # YOLOv7 codebase
 ├── ultralytics/                 # YOLOv8+ codebase
-├── requirements_multispectral.txt  # Python dependencies
 ├── main_dataset.yaml           # Main dataset configuration
 ├── train_command.md            # Training command reference
+├── predict_commands.md         # Inference command reference
+├── requirements_multispectral.txt  # Python dependencies
 └── README.md                   # This file
 ```
 
@@ -77,7 +85,7 @@ pip install -r requirements_multispectral.txt
 ```
 
 ### Data Preparation
-1. Raw multispectral images are located in `data/main_images/`
+1. Raw multispectral images are located in `data/`
 2. YOLO-format labels are in `data/labels/`
 3. Use scripts in `scripts/` for dataset preparation and permutation generation
 4. Dataset configurations are defined in `main_dataset.yaml`
@@ -119,6 +127,20 @@ yolo detect train data=main_dataset.yaml model=yolov10n.pt epochs=100 imgsz=640 
 yolo detect train data=main_dataset.yaml model=yolov11n.pt epochs=100 imgsz=640 project=results/ultralytics_runs name=experiment_name
 ```
 
+## 🔍 Inference Commands
+
+### Single Modality Inference
+For detailed inference commands for all modalities (Signal, Reflectance, Near-IR, Range, Combined Color) and all YOLO versions (v8-v11), see `predict_commands.md`.
+
+### Example Inference Commands
+```bash
+# Signal modality with YOLOv11
+yolo predict model="trained_weights/train_signal_11n/weights/best.pt" source="data/single_modality/SnowPole_Detection_Dataset/signal/train/image_1967.png" conf=0.4 name=signal_v11_image_1967
+
+# Combination 4 with YOLOv10
+yolo predict model="trained_weights/v10N__perm4/weights/best.pt" source="data/Combinations_yolo_format/Combination4/train/image_1967.png" conf=0.4 name=perm4_v10_image_1967
+```
+
 ## 📊 Results & Evaluation
 
 ### Performance Metrics
@@ -131,10 +153,10 @@ yolo detect train data=main_dataset.yaml model=yolov11n.pt epochs=100 imgsz=640 
 - **Resource Usage**: Memory and CPU utilization
 
 ### Result Files
-- Individual model results: `results/model_test_results_*.json`
-- Comparison figures: `results/*.png`
+- Ground truth visualizations: `results/ground_truth_*.png`
 - Permutation analysis: `results/permutation_results/`
-- Training logs: `results/runs-yolo-v7/`
+- Inference results: `inference/` directory with organized model outputs
+- Training logs: Available in individual model directories under `trained_weights/`
 
 ### Running Evaluation
 ```bash
@@ -146,35 +168,11 @@ python scripts/plot_permutations.py
 
 # Single image inference
 python scripts/inference_on_single_image.py --image path/to/image.jpg
+
+# Visualize ground truth
+python scripts/visualize_ground_truth.py
 ```
 
-## 🔬 Research Paper Guidelines
-
-### Key Contributions
-1. **Multispectral Dataset**: Comprehensive multispectral object detection dataset
-2. **Systematic Benchmarking**: Evaluation across multiple YOLO versions
-3. **Spectral Analysis**: Performance analysis across different spectral combinations
-4. **Reproducible Framework**: Complete pipeline for multispectral object detection research
-
-### Experimental Setup
-- **Models Tested**: YOLOv5, YOLOv7, YOLOv8, YOLOv9, YOLOv10, YOLOv11
-- **Input Resolutions**: 640x640, 1024x1024, 1280x1280
-- **Spectral Combinations**: Various RGB+NIR+LiDAR combinations
-- **Evaluation Metrics**: Standard COCO metrics + inference speed
-
-## 📚 Citation
-
-If you use this framework in your research, please cite:
-```bibtex
-@misc{ExtendEvalSnowYolo2025,
-  title={Extended Evaluation of SnowPole Detection for Machine-Perceivable Infrastructure for Nordic Winter Conditions: A Comparative Study of Object Detection Models
-},
-  author={Durga Prasad Bavirisetti, Muhammad Ibne Rafiq, Shaira Tabassum, Gabriel Hanssen Kiss, Frank Lindseth},
-  year={2025},
-  howpublished={\url{[https://github.com/MuhammadIbneRafiq/Extended-evaluation-snowpole-lidar-dataset]},
-  note={Comprehensive benchmarking and reproducible research for multispectral object detection}
-}
-```
 
 ## 🤝 Contributing
 
@@ -187,7 +185,9 @@ If you use this framework in your research, please cite:
 ## 📞 Support
 
 - **Issues**: Report bugs and request features via GitHub Issues
-- **Documentation**: See `train_command.md` for detailed training instructions
+- **Documentation**: 
+  - See `train_command.md` for detailed training instructions
+  - See `predict_commands.md` for comprehensive inference commands
 - **Scripts**: Check individual script files for usage examples
 
 ---
