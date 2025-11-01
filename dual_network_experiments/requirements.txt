@@ -1,0 +1,24 @@
+# Core dependencies for dual network experiments
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+pyyaml>=6.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+tqdm>=4.65.0
+tensorboard>=2.13.0
+albumentations>=1.3.0
+scikit-learn>=1.3.0
+pandas>=2.0.0
+
+# YOLO-specific dependencies
+ultralytics>=8.0.0
+
+# Additional utilities
+pymerkle>=3.0.0  # For Merkle tree implementation
+einops>=0.6.0    # For tensor operations
+timm>=0.9.0      # For pretrained models
+fvcore>=0.1.5    # For FLOPs calculation
+thop>=0.1.0      # For model complexity analysis

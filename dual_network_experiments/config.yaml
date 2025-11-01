@@ -1,0 +1,224 @@
+# Main Configuration File for Dual Network Experiments
+# SnowPole Detection Pipeline Configuration
+
+# Dataset Configuration
+dataset:
+  root_path: "../SnowPole_Detection_Dataset"
+  train_path: "train"
+  val_path: "valid"
+  test_path: "test"
+  labels_path: "labels"
+  
+  # Available modalities
+  modalities:
+    - "reflec"      # Reflectance
+    - "signal"      # Signal intensity
+    - "nearir"      # Near-infrared
+    - "range"       # Range/depth
+    - "Combination1"  # R=Reflectance, G=NearIR, B=Signal
+    - "Combination2"  # R=Reflectance, G=Signal, B=NearIR
+    - "Combination3"  # R=NearIR, G=Reflectance, B=Signal
+    - "Combination4"  # R=NearIR, G=Signal, B=Reflectance
+    - "Combination5"  # R=Signal, G=Reflectance, B=NearIR
+    - "Combination6"  # R=Signal, G=NearIR, B=Reflectance
+  
+  # Class configuration
+  num_classes: 1
+  class_names:
+    - "pole"
+
+# Model Architecture Configuration
+model:
+  # Base architecture settings
+  architecture: "dual_network"  # dual_network, single_branch
+  backbone: "yolov9"  # yolov9, yolov11, custom
+  
+  # Input configuration
+  input_size: 640  # Input image size
+  input_channels: 4  # 3 for RGB, 4 for RGBA
+  
+  # Dual network specific
+  dual_network:
+    rgb_branch:
+      pretrained: true
+      pretrained_weights: "yolov9-c.pt"  # Path to pretrained weights
+      freeze_layers: 10  # Number of layers to freeze
+    
+    alpha_branch:
+      architecture: "lightweight"  # lightweight, full
+      share_weights: false  # Share weights between branches
+      input_modality: "range"  # range, nearir, signal
+    
+    fusion:
+      strategy: "hierarchical"  # early, late, hierarchical
+      fusion_points: [3, 5, 7]  # Layer indices for fusion
+      fusion_method: "concatenation"  # concatenation, addition, gated
+  
+  # Attention modules
+  attention:
+    enabled: true
+    type: "ema"  # ema, cbam, se, cross_modal
+    position: "after_fusion"  # before_fusion, after_fusion, both
+    reduction_ratio: 16
+  
+  # Detection head configuration
+  detection_head:
+    anchor_free: true
+    num_anchors: 3
+    confidence_threshold: 0.25
+    nms_threshold: 0.45
+
+# Training Configuration
+training:
+  # Basic settings
+  epochs: 300
+  batch_size: 16
+  workers: 8
+  device: "cuda"  # cuda, cpu
+  mixed_precision: true
+  
+  # Optimizer settings
+  optimizer:
+    type: "adamw"  # adam, adamw, sgd
+    lr: 0.001
+    weight_decay: 0.0005
+    momentum: 0.937  # For SGD
+  
+  # Learning rate scheduler
+  scheduler:
+    type: "cosine"  # cosine, step, exponential
+    warmup_epochs: 3
+    warmup_momentum: 0.8
+    warmup_bias_lr: 0.1
+    min_lr: 0.0001
+  
+  # Loss configuration
+  loss:
+    box_loss_weight: 7.5
+    cls_loss_weight: 0.5
+    dfl_loss_weight: 1.5  # Distribution focal loss
+    use_focal_loss: true
+  
+  # Data augmentation
+  augmentation:
+    enabled: true
+    hsv_h: 0.015  # HSV hue augmentation
+    hsv_s: 0.7    # HSV saturation augmentation
+    hsv_v: 0.4    # HSV value augmentation
+    degrees: 0.0  # Rotation
+    translate: 0.1  # Translation
+    scale: 0.5    # Scaling
+    shear: 0.0    # Shear
+    perspective: 0.0  # Perspective
+    flipud: 0.0   # Flip up-down
+    fliplr: 0.5   # Flip left-right
+    mosaic: 1.0   # Mosaic augmentation
+    mixup: 0.0    # Mixup augmentation
+    copy_paste: 0.0  # Copy-paste augmentation
+
+# Fusion Architecture Configuration
+fusion:
+  # Concatenation fusion
+  concatenation:
+    normalize: true
+    use_conv: true  # Use 1x1 conv after concatenation
+  
+  # Addition fusion
+  addition:
+    weighted: true  # Use learnable weights
+    normalize: true
+  
+  # Gated fusion
+  gated:
+    gate_type: "sigmoid"  # sigmoid, softmax
+    temperature: 1.0
+    use_attention: true
+
+# Merkle Tree Configuration
+merkle_tree:
+  enabled: false
+  tile_size: 128  # Size of each tile for caching
+  hash_algorithm: "sha256"
+  cache_size: 1000  # Maximum number of cached tiles
+  similarity_threshold: 0.95  # Threshold for tile similarity
+
+# Inference Configuration
+inference:
+  confidence_threshold: 0.4
+  iou_threshold: 0.5
+  max_detections: 300
+  
+  # TensorRT optimization (optional)
+  use_tensorrt: false
+  tensorrt:
+    fp16: true
+    int8: false
+    workspace_size: 4  # GB
+
+# Evaluation Configuration
+evaluation:
+  metrics:
+    - "precision"
+    - "recall"
+    - "map50"
+    - "map50-95"
+    - "inference_time_gpu"
+    - "inference_time_cpu"
+  
+  # Composite rank score weights
+  rank_score:
+    map50_95_weight: 3
+    map50_weight: 2
+    precision_weight: 1
+    recall_weight: 1
+    latency_penalty: 0.01
+
+# Experiment Configuration
+experiments:
+  exp1_baseline:
+    name: "Baseline RGBA"
+    description: "Baseline with 4-channel RGBA input"
+    enabled: true
+  
+  exp2_attention:
+    name: "Attention Ablation"
+    description: "Compare with and without attention modules"
+    enabled: true
+  
+  exp3_modality:
+    name: "Modality Ablation"
+    description: "Test RGB-only, A-only, and combined"
+    enabled: true
+  
+  exp5_fusion:
+    name: "Fusion Architecture"
+    description: "Compare different fusion strategies"
+    enabled: true
+  
+  exp7_merkle:
+    name: "Merkle Tree Caching"
+    description: "Test inference caching with Merkle trees"
+    enabled: true
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  tensorboard: true
+  wandb:
+    enabled: false
+    project: "snowpole-detection"
+    entity: null
+  
+  # Checkpointing
+  checkpoint:
+    save_period: 10  # Save every N epochs
+    save_best: true
+    save_last: true
+    max_checkpoints: 5
+
+# Output Configuration
+output:
+  results_dir: "./results"
+  weights_dir: "./weights"
+  logs_dir: "./logs"
+  visualizations_dir: "./visualizations"
