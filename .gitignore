@@ -3,6 +3,7 @@ SnowPole_Detection_Dataset/
 abc/
 data/
 venv/
+range-normalized/
 ultralytics/    
 yolov7/
 trained_weights/
