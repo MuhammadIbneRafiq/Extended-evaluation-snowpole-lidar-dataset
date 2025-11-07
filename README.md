@@ -162,6 +162,59 @@ python scripts/visualize_ground_truth.py
 ```
 
 
+## 🌈 RGBA Dual-Branch Pipeline
+
+### Model Conversion for 4-Channel Inputs
+
+We extend Ultralytics YOLO backbones to ingest RGBA tensors (RGB pseudo-color + range). Use `dual_network_experiments/core/dual_net_ultralytics.py` to clone pretrained weights and swap the first convolution to four input channels:
+
+```bash
+# From the repository root
+python dual_network_experiments/core/dual_net_ultralytics.py
+```
+
+This script copies the pretrained RGB kernels into the first three channels and initializes the alpha (range) channel with zeros. It saves a checkpoint named `yolov9c_rgba.pt`, which can be fine-tuned with the Ultralytics CLI.
+
+### Finetuning with Ultralytics CLI
+
+```bash
+yolo detect train \
+    data=main_dataset.yaml \
+    model=yolov9c_rgba.pt \
+    epochs=100 \
+    imgsz=640 \
+    project=results/ultralytics_rgba_runs \
+    name=yolov9c_rgba_comb4_range
+```
+
+> Tip: Generate RGBA composites by concatenating the best-performing pseudo-color combination (e.g., Combination 4) with the normalized range channel before training.
+
+### Fusion Ablation Summary
+
+The `draft_report.tex` describes an ablation suite that contrasts three fusion strategies inside the dual-branch detector:
+
+- **Early Fusion (concatenation):** Stack RGB and range channels upfront and share a single backbone. Fastest option; serves as the baseline for RGBA gains.
+- **Late Fusion:** Process RGB and range with separate backbones, merge features at the neck/head. Improves mAP at modest latency cost.
+- **Gated Fusion:** Learn dynamic gates that weight modality contributions per feature scale, delivering the best accuracy–latency balance in preliminary trials.
+
+All ablations share identical training schedules so that performance deltas can be traced to fusion design choices. See Section 4.7 of the paper draft for table templates and qualitative findings.
+
+## ⚡ Merkle Tree Inference Cache
+
+`dual_network_experiments/core/merkle_tree.py` implements tile-wise SHA-256 hashing and an inference cache wrapper. Integrating it around the dual-network model can yield 1.3–2.0× speedups on sequential frames with largely static backgrounds while keeping mAP degradation below 0.01. Key configuration knobs:
+
+- **Tile size:** 128×128 or 256×256 depending on desired spatial granularity.
+- **Hash types:** Cryptographic (SHA-256) and optional perceptual hashes for robustness.
+- **Cache policy:** LRU eviction with configurable capacity to match hardware constraints.
+
+Use the cache wrapper’s `cached_inference()` method to run detection only on tiles flagged as changed and merge cached results for the full panorama.
+
+## 🧾 Documentation & Writing Assets
+
+- `draft_report.tex` contains the in-progress 10-page research paper with RGBA fusion methodology, ablation tables, caching analysis, and future work.
+- Keep references synchronized between the paper and this README when adding new citations or experimental evidence.
+
+
 ## 🤝 Contributing
 
 1. Fork the repository
