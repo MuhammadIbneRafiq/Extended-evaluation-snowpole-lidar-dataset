@@ -24,22 +24,13 @@ SPLITS = ["train", "valid", "test"]
 
 # (output_folder_name, (R, G, B))
 CHANNEL_COMBINATIONS = [
-    ("Combination4_nearir_range_reflec", ("nearir", "range", "reflec")),
-    ("Combination4_range_signal_reflec", ("range", "signal", "reflec")),
-    ("Combination5_range_reflec_nearir", ("range", "reflec", "nearir")),
-    ("Combination5_signal_range_nearir", ("signal", "range", "nearir")),
-    ("Combination5_signal_reflec_range", ("signal", "reflec", "range")),
+    ("Combination4_nearir_signal_range", ("nearir", "signal", "range")),
+    # ("Combination4_nearir_range_reflec", ("nearir", "range", "reflec")),
+    # ("Combination4_range_signal_reflec", ("range", "signal", "reflec")),
+    # ("Combination5_range_reflec_nearir", ("range", "reflec", "nearir")),
+    # ("Combination5_signal_range_nearir", ("signal", "range", "nearir")),
+    # ("Combination5_signal_reflec_range", ("signal", "reflec", "range")),
 ]
-
-
-def validate_modalities(required_modalities):
-    for modality in required_modalities:
-        modality_path = MODALITY_PATHS.get(modality)
-        if modality_path is None:
-            raise KeyError(f"Unknown modality '{modality}' specified in combination definition.")
-        if not modality_path.exists():
-            raise FileNotFoundError(f"Expected modality directory missing: {modality_path}")
-
 
 def collect_filenames(split, required_modalities):
     filename_sets = []
@@ -84,7 +75,6 @@ def load_channel_image(modality, split, filename):
 
 def generate_combination(combo_name, channel_modalities):
     required_modalities = set(channel_modalities)
-    validate_modalities(required_modalities)
 
     output_root = BASE_PATH / combo_name
     output_root.mkdir(parents=True, exist_ok=True)
