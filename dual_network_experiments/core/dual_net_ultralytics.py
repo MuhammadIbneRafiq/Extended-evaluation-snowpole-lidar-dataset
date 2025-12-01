@@ -1,8 +1,7 @@
 import torch
 from ultralytics import YOLO
-from ultralytics.nn.modules import Conv
 
-model = YOLO("yolov9c.pt")           # Step 2: load pretrained RGB weights
+model = YOLO("yolov9t.pt")           # Step 2: load pretrained RGB weights
 model.model.eval()                   # get the underlying nn.Module graph
 
 first_conv = model.model.model[0]    # YOLOv9 stem (Conv → BN → SILU)
@@ -25,4 +24,4 @@ with torch.no_grad():
 first_conv.conv = new_conv            # swap into the module tree
 model.model.model[0] = first_conv     # ensure the model graph is updated
 
-model.save("yolov9c_rgba.pt")
+model.save("yolov9t_rgba.pt")

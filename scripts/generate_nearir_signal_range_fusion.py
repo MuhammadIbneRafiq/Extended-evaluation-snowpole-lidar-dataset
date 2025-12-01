@@ -24,12 +24,15 @@ SPLITS = ["train", "valid", "test"]
 
 # (output_folder_name, (R, G, B))
 CHANNEL_COMBINATIONS = [
+    #Combination4_nearir_signal_reflec - alpha=Range-normalized
     ("Combination4_nearir_signal_range", ("nearir", "signal", "range")),
-    # ("Combination4_nearir_range_reflec", ("nearir", "range", "reflec")),
-    # ("Combination4_range_signal_reflec", ("range", "signal", "reflec")),
-    # ("Combination5_range_reflec_nearir", ("range", "reflec", "nearir")),
-    # ("Combination5_signal_range_nearir", ("signal", "range", "nearir")),
-    # ("Combination5_signal_reflec_range", ("signal", "reflec", "range")),
+    ("Combination4_nearir_range_reflec", ("nearir", "range", "reflec")),
+    ("Combination4_range_signal_reflec", ("range", "signal", "reflec")),
+    #Combination5_signal_reflec_nearir - alpha=Range_normlaized
+    #"Combination4_range_signal_reflec"- alpha-range_normalized.
+    ("Combination5_range_reflec_nearir", ("range", "reflec", "nearir")),
+    ("Combination5_signal_range_nearir", ("signal", "range", "nearir")),
+    ("Combination5_signal_reflec_range", ("signal", "reflec", "range")),
 ]
 
 def collect_filenames(split, required_modalities):
