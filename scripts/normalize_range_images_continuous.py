@@ -1,12 +1,35 @@
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-from pathlib import Path
 import os
+from pathlib import Path
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
 from tqdm import tqdm
 
-# Define paths
-base_path = Path(r"C:\Users\muham\OneDrive - TU Eindhoven\Extended-evaluation-snowpole-lidar-dataset\SnowPole_Detection_Dataset")
+
+def _resolve_dataset_root() -> Path:
+    """Mirror the notebook's path resolution so the script works in VS Code and Colab."""
+    env_root = os.environ.get("SNOWPOLE_DATASET_ROOT")
+    if env_root:
+        return Path(env_root).expanduser().resolve()
+
+    scripts_dir = Path(__file__).resolve().parent
+    candidates = [
+        scripts_dir.parent / "SnowPole_Detection_Dataset",
+        scripts_dir.parent / "data" / "SnowPole_Detection_Dataset",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+
+    # Fall back to first candidate and create it so downstream code can populate it
+    fallback = candidates[0]
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback.resolve()
+
+
+# Define paths dynamically
+base_path = _resolve_dataset_root()
 range_path = base_path / "range"
 # this will contain continuous [0,1] float32 tensors as .npy
 output_path = base_path / "range-normalized-continuous"

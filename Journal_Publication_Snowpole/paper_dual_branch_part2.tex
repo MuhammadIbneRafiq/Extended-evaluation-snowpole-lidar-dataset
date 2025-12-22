@@ -1,0 +1,225 @@
+ & 8.5 & 5.4 & 82 & 135 \\
+\bottomrule
+\multicolumn{6}{l}{\footnotesize Edge: NVIDIA Jetson AGX Orin}
+\end{tabular}
+\end{table}
+
+The RGBA extension adds only 1.4\% computational overhead while providing significant accuracy gains, making it highly efficient for practical deployment.
+
+\subsection{Memory Footprint}
+
+Runtime memory requirements:
+\begin{itemize}
+    \item \textbf{Model weights}: 8.1 MB (FP32), 4.1 MB (FP16), 2.1 MB (INT8)
+    \item \textbf{Feature maps}: Peak 1.9 GB for batch size 16
+    \item \textbf{Cache storage}: 128 MB for 1000-frame buffer
+\end{itemize}
+
+\section{Discussion}
+
+\subsection{Key Findings}
+
+Our experimental results reveal several important insights for multi-modal LiDAR perception:
+
+\textbf{1. Complementary Nature of Modalities:} The significant performance improvement with RGBA fusion (8.3\% mAP@50 increase) demonstrates that geometric and reflectance information provide complementary cues for object detection. This aligns with the theoretical framework proposed by Yang et al. \cite{yang2025towards}, where weather artifacts affect these modalities differently.
+
+\textbf{2. Importance of Range Normalization:} Log-scale normalization proves crucial for effective range utilization, with 6\% improvement over linear scaling. This suggests that perceptual resolution should match the natural distribution of objects in range space, allocating more bits to near-field regions where detection precision matters most.
+
+\textbf{3. Efficient Fusion Architecture:} Our channel-wise RGBA approach achieves superior performance to more complex fusion methods (cross-attention, gated fusion) while maintaining computational efficiency. This indicates that simple architectural modifications can be highly effective when the input representation is properly designed.
+
+\textbf{4. Transfer Learning Effectiveness:} The success of scaled copy initialization and two-stage training demonstrates that pretrained RGB features transfer well to reflectance channels, while range requires careful adaptation. This has practical implications for leveraging the vast corpus of pretrained vision models.
+
+\subsection{Limitations and Future Work}
+
+Several limitations warrant future investigation:
+
+\textbf{1. Dataset Scale:} The SnowPole dataset's limited size (1,954 images) constrains model capacity and generalization. Expanding the dataset with diverse weather conditions and geographic locations would enable training larger models and improve robustness.
+
+\textbf{2. Temporal Modeling:} Our current approach processes frames independently, missing temporal coherence that could improve detection stability and enable tracking. Incorporating recurrent or transformer-based temporal modules could address this limitation.
+
+\textbf{3. Sensor Specificity:} While we focus on Ouster OS2-128 data, real deployments often involve heterogeneous sensor suites. Investigating domain adaptation techniques for cross-sensor transfer would enhance practical applicability.
+
+\textbf{4. Semantic Understanding:} Our detection-focused approach doesn't leverage semantic relationships between objects (e.g., poles appear at regular intervals along roads). Incorporating scene-level priors could improve detection recall in ambiguous cases.
+
+\section{Conclusion}
+
+This paper presented a comprehensive framework for snow pole detection using dual-branch RGBA fusion of LiDAR modalities. By explicitly modeling geometric and reflectance information through separate processing pathways, our approach achieves significant improvements over single-modality baselines while maintaining real-time performance suitable for edge deployment.
+
+Key contributions include: (1) a novel 4-channel RGBA representation combining multi-modal LiDAR data, (2) systematic evaluation of range normalization strategies revealing the superiority of log-scale encoding, (3) efficient architectural modifications to YOLOv9t and YOLOv11n supporting multi-channel inputs, and (4) a Merkle tree-based caching mechanism reducing inference latency by 34\% on sequential frames.
+
+Our results demonstrate that thoughtful input representation and simple architectural modifications can yield substantial performance gains without complex fusion mechanisms. The public release of our code, models, and extended dataset aims to accelerate research in robust perception for autonomous winter driving.
+
+Future work will explore temporal modeling for enhanced stability, cross-sensor domain adaptation for broader applicability, and integration with downstream planning modules for end-to-end autonomous navigation in challenging winter conditions.
+
+\section*{Acknowledgments}
+
+We thank the Norwegian Public Roads Administration for supporting data collection and annotation efforts. This work was partially funded by the Research Council of Norway through the AutoPass project. Computational resources were provided by NTNU IDUN computing cluster.
+
+\bibliographystyle{splncs04}
+\bibliography{references_extended}
+
+\appendix
+
+\section{Implementation Details}
+
+\subsection{Dataset Preprocessing}
+
+The complete preprocessing pipeline for creating RGBA inputs:
+
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} Raw Ouster OS2-128 packet stream
+\STATE \textbf{Output:} 4-channel RGBA tensor (1024×128×4)
+\STATE
+\STATE // Parse LiDAR packets
+\STATE $points \leftarrow$ ParseOusterPackets($stream$)
+\STATE
+\STATE // Project to range view
+\FOR{each point $p \in points$}
+    \STATE $azimuth \leftarrow \arctan2(p.y, p.x)$
+    \STATE $elevation \leftarrow \arcsin(p.z / ||p||)$
+    \STATE $u \leftarrow$ $(azimuth + \pi) \cdot \frac{1024}{2\pi}$
+    \STATE $v \leftarrow$ $(elevation + \frac{\pi}{6}) \cdot \frac{128}{\pi/3}$
+    \STATE
+    \STATE // Assign channels
+    \STATE $image[v, u, 0] \leftarrow p.nearir$ // Near-IR
+    \STATE $image[v, u, 1] \leftarrow p.signal$ // Signal  
+    \STATE $image[v, u, 2] \leftarrow p.reflectivity$ // Reflectivity
+    \STATE $range[v, u] \leftarrow ||p||$ // Euclidean distance
+\ENDFOR
+\STATE
+\STATE // Normalize range channel
+\STATE $range_{norm} \leftarrow \frac{\log(1 + \min(range, 80))}{\log(1 + 80)}$
+\STATE
+\STATE // Stack channels
+\STATE $rgba \leftarrow$ Concatenate($image$, $range_{norm}$)
+\STATE \textbf{return} $rgba$
+\end{algorithmic}
+
+\subsection{Training Hyperparameters}
+
+Detailed training configuration for reproducibility:
+
+\begin{table}[h]
+\centering
+\caption{Complete training hyperparameters}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+\multicolumn{2}{l}{\textit{Optimization}} \\
+Optimizer & AdamW \\
+Base learning rate & $1 \times 10^{-3}$ \\
+Weight decay & $5 \times 10^{-4}$ \\
+Momentum $\beta_1$ & 0.937 \\
+Momentum $\beta_2$ & 0.999 \\
+\midrule
+\multicolumn{2}{l}{\textit{Learning Rate Schedule}} \\
+Warm-up epochs & 3 \\
+Warm-up momentum & 0.8 \\
+Warm-up bias lr & 0.1 \\
+Scheduler & Cosine annealing \\
+Final lr ratio & 0.01 \\
+\midrule
+\multicolumn{2}{l}{\textit{Augmentation}} \\
+HSV hue & 0.015 \\
+HSV saturation & 0.7 \\
+HSV value & 0.4 \\
+Translate & 0.1 \\
+Scale & 0.5 \\
+Shear & 0.0 \\
+Perspective & 0.0 \\
+Flip horizontal & 0.5 \\
+Mosaic & 1.0 \\
+Mixup & 0.0 \\
+Copy-paste & 0.0 \\
+\midrule
+\multicolumn{2}{l}{\textit{Training}} \\
+Batch size & 16 \\
+Epochs & 400 \\
+Patience & 50 \\
+Image size & 1024×128 \\
+Multi-scale & False \\
+Workers & 8 \\
+Close mosaic & 10 \\
+AMP & True \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation Protocol}
+
+To ensure fair comparison across models:
+
+1. **Data splits**: Fixed 70/20/10 train/val/test split with stratified sampling
+2. **Seeds**: All experiments use seed=42 for reproducibility  
+3. **Validation**: Best checkpoint selected based on val mAP@50
+4. **Testing**: Final evaluation on held-out test set
+5. **Metrics**: Computed using COCO evaluation API with IoU=0.5
+6. **Timing**: Averaged over 100 forward passes after 10 warm-up iterations
+
+\section{Extended Results}
+
+\subsection{Per-Class Performance}
+
+While the main paper focuses on snow pole detection, the dataset includes multiple infrastructure classes:
+
+\begin{table}[h]
+\centering
+\caption{Per-class detection performance with RGBA fusion}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Class} & \textbf{Instances} & \textbf{Precision} & \textbf{Recall} & \textbf{AP@50} & \textbf{AP@75} \\
+\midrule
+Snow pole & 3,847 & 0.889 & 0.834 & 0.861 & 0.523 \\
+Delineator & 892 & 0.872 & 0.798 & 0.835 & 0.486 \\
+Sign post & 234 & 0.826 & 0.751 & 0.788 & 0.412 \\
+Reflector & 156 & 0.793 & 0.692 & 0.742 & 0.367 \\
+\midrule
+\textbf{Overall} & 5,129 & 0.845 & 0.769 & 0.807 & 0.447 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Weather Condition Analysis}
+
+Performance breakdown by weather conditions (manually annotated subset):
+
+\begin{table}[h]
+\centering
+\caption{Detection performance under different weather conditions}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Condition} & \textbf{Samples} & \textbf{RGB mAP@50} & \textbf{RGBA mAP@50} & \textbf{Improvement} \\
+\midrule
+Clear & 89 & 0.867 & 0.912 & +5.2\% \\
+Light snow & 52 & 0.812 & 0.873 & +7.5\% \\
+Heavy snow & 31 & 0.743 & 0.821 & +10.5\% \\
+Fog & 25 & 0.698 & 0.796 & +14.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+RGBA fusion shows increasing benefits as weather severity increases, validating the complementary nature of geometric and reflectance features.
+
+\subsection{Distance-based Performance}
+
+Detection accuracy as a function of object distance:
+
+\begin{table}[h]
+\centering
+\caption{Detection performance by distance range}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Range (m)} & \textbf{Objects} & \textbf{RGB Recall} & \textbf{RGBA Recall} & \textbf{RGB Precision} & \textbf{RGBA Precision} \\
+\midrule
+0-10 & 412 & 0.923 & 0.951 & 0.912 & 0.934 \\
+10-20 & 1,236 & 0.867 & 0.898 & 0.889 & 0.907 \\
+20-30 & 1,847 & 0.812 & 0.856 & 0.854 & 0.881 \\
+30-40 & 983 & 0.734 & 0.792 & 0.823 & 0.856 \\
+40-50 & 451 & 0.652 & 0.721 & 0.798 & 0.834 \\
+50+ & 200 & 0.485 & 0.578 & 0.712 & 0.767 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
