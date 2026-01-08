@@ -41,7 +41,7 @@ project-root/
 ├── ultralytics/                 # YOLOv8+ codebase
 ├── main_dataset.yaml           # Main dataset configuration
 ├── train_command.md            # Training command reference
-├── predict_commands.md         # Inference command reference
+├── test_commands.md         # Inference command reference
 ├── requirements_multispectral.txt  # Python dependencies
 └── README.md                   # This file
 ```
