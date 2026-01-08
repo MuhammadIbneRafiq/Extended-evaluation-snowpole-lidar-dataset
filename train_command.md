@@ -26,9 +26,6 @@ yolo train model=yolov10n.pt data=dataset.yaml epochs=300 imgsz=1024 device=0 ba
 yolo train model=yolo11n.pt data=dataset.yaml epochs=300 imgsz=1024 device=0 batch=8 name=v11N__perm1
 ```
 
-## Notes
-- Cite papers / YouTube videos for architecture, etc.
-
 ## Test / Validation
 ```bash
 # YOLOv7 test
